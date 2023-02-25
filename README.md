@@ -1,92 +1,132 @@
 # ros_whill
+ros_whill is a ROS package for [WHILL Model CR](https://whill.jp/model-cr).<br>
+We also have [a FAQ and developers community website](https://whill.zendesk.com/hc/ja) for current and potential Model CR users.<br>
+For general questions and requests, please visit https://whill.zendesk.com/hc/ja .
+
+<img src="https://user-images.githubusercontent.com/2618822/45492944-89421c00-b7a8-11e8-9c92-22aa3f28f6e4.png" width=30%>
+
+## Requirements
+- ROS Melodic
+
+## ROS API
+
+### Subscribed Topics
+
+#### ~controller/joy [(sensor_msgs/Joy)](http://docs.ros.org/api/sensor_msgs/html/msg/Joy.html)
+- Virtual WHILL joystick input. You can controll WHILL via this topic.
+
+#### ~controller/cmd_vel [(geometry_msgs/Twist)](http://docs.ros.org/api/geometry_msgs/html/msg/Twist.html)
+- cmc_vel input. You can controll WHILL via this topic.
+- This command is only available Model CR firmware updatedd after 2019.12. If you want to use this cmd_vel, please update firmware of Model CR by contact to sales of WHILL.
+
+### Published Topics
+
+#### ~states/joy [(sensor_msgs/Joy)](http://docs.ros.org/api/sensor_msgs/html/msg/Joy.html)
+- Joystick status
+
+#### ~states/jointState [(sensor_msgs/JointState)](http://docs.ros.org/api/sensor_msgs/html/msg/JointState.html)
+- Wheel rotate position(rad) and rotation velocity(rad/s)
+
+#### ~states/imu [(sensor_msgs/Imu)](http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html)
+- IMU measured data.
+
+#### ~states/batteryState [(sensor_msgs/BatteryState)](http://docs.ros.org/api/sensor_msgs/html/msg/BatteryState.html)
+- Battery information
 
 
+### Services
 
-## Getting started
+#### ~odom/clear [std_srvs/Empty]
+Clear Odometry
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+#### ~power [std_srvs/SetBool]
+True to send power on command, false to power off.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+#### ~speedProfile/set [ros_whill/SetSpeedProfile]
+You can set WHILL speed profile for `~controller/joy` topic.
+```
+ros_whill/SpeedPack forward
+  float32 speed  # m/s
+  float32 acc    # m/ss
+  float32 dec    # m/ss
+ros_whill/SpeedPack backward
+  float32 speed  # m/s
+  float32 acc    # m/ss
+  float32 dec    # m/ss
+ros_whill/SpeedPack turn
+  float32 speed  # rad/s
+  float32 acc    # rad/ss
+  float32 dec    # rad/ss
+---
+bool success
+string status_message
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.cds.tohoku.ac.jp/horippy/ros_whill.git
-git branch -M main
-git push -uf origin main
+
+### Parameters
+
+### ~init_speed/*
+See: https://github.com/WHILL/ros_whill/blob/melodic-devel/params/initial_speedprofile.yaml
+
+### ~keep_connected (Bool, default:false)
+Set true to try to keep connected by re-opening port and sending power-on command. Though the WHILL automticarry wakes up even you turn off manualy or by power-off command.
+
+### ~publish_tf (Bool, defualt: true)
+False to stop publishing `odom` to `base_link` tf. If other node publishs, set value to false.
+
+### ~serialport (String, default:/dev/ttyUSB0)
+
+
+## SerialPort Setting for ros_whill.launch
+The `ros_whill.launch` is using environmental variable `TTY_WHILL` for specify which serial port to be used.
+
+### Set
+
+Edit your `~/.bashrc` (bash) or `~/.zshrc` (zsh) to add this line:
+
+```sh
+export TTY_WHILL=/dev/[YOUR SERIAL PORT DEVICE]
+```
+Setting will be applied automatically from next shell starting or booting up.
+
+#### Apply setting immediately
+
+In your shell:
+
+(bash)
+```bash
+source ~/.bashrc
 ```
 
-## Integrate with your tools
+(zsh)
+```zsh
+source ~/.zshrc
+```
 
-- [ ] [Set up project integrations](https://gitlab.cds.tohoku.ac.jp/horippy/ros_whill/-/settings/integrations)
+### Check the current setting
+```sh
+echo $TTY_WHILL  # -> Should be /dev/[YOUR SERIAL PORT DEVICE]
+```
 
-## Collaborate with your team
+### In the case of opening serial port failed
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+Edit
+```
+/lib/udev/rules.d/50-udev-default.rules
+```
 
-## Test and Deploy
+And add:
+```
+KERNEL=="ttyUSB[0-9]*", MODE="0666"
+```
 
-Use the built-in continuous integration in GitLab.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+## Launch with Model
+```sh
+$ roslaunch ros_whill ros_whill.launch
+```
 
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### Set serial port as an argument of the launch file
+```sh
+roslaunch ros_whill ros_whill.launch serialport:=/dev/[YOUR SERIAL PORT DEVICE]
+```
